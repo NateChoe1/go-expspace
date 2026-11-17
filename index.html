@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Go with superko is EXPSPACE-complete</title>
+    <link rel="stylesheet" type="text/css" href="css/besogo.css">
+    <link rel="stylesheet" type="text/css" href="css/board-flat.css">
+
+    <script src="js/besogo.js"></script>
+    <script src="js/editor.js"></script>
+    <script src="js/gameRoot.js"></script>
+    <script src="js/svgUtil.js"></script>
+    <script src="js/parseSgf.js"></script>
+    <script src="js/loadSgf.js"></script>
+    <script src="js/saveSgf.js"></script>
+    <script src="js/boardDisplay.js"></script>
+    <script src="js/coord.js"></script>
+    <script src="js/toolPanel.js"></script>
+    <script src="js/filePanel.js"></script>
+    <script src="js/controlPanel.js"></script>
+    <script src="js/namesPanel.js"></script>
+    <script src="js/commentPanel.js"></script>
+    <script src="js/treePanel.js"></script>
+  </head>
+  <body onload="besogo.autoInit()">
+    <h1>Go with superko is EXPSPACE-complete</h1>
+
+    <p>Written by Nate Choe, 2026-11-16</p>
+    <p>Also, I don't know how to use LaTeX and trying to typeset go positions
+    is confusing me, so you get hand-written HTML.</p>
+    <p>Also also, I'll be assuming familiarity with what a superko is and how
+    ladders work. The current version of this document is primarily aimed at
+    people with some experience playing go; maybe a later version of this
+    document will be more accessible, but right now I'm prioritizing just
+    getting something written down and out in the public as fast as possible so
+    that other people can review my work for mistakes.</p>
+
+    <h2>Crasmaru's gadgets</h2>
+
+    <p>This entire section is based primarily on the work of Marcel Crasmaru.
+
+    <p>Crasmaru devised many gadgets for proving computational facts about go
+    using ladders. The first is the <i>mirror</i>, which redirects a ladder to
+    go in some other direction:</p>
+
+    <div class="besogo-viewer" orient="portrait" panels="control" portratio="none" nowheel="true" coord="western">
+      (;FF[4]GM[1]CA[UTF-8]AP[besogo:0.0.2-alpha]SZ[19]ST[0]AB[dp][ik][jk]AW[cp][dq][eq][ij][jj];W[do];B[ep];W[fp];B[eo];W[en];B[fo];W[go];B[fn];W[fm];B[gn];W[hn];B[gm];W[gl];B[hm];W[im];B[hl];W[hk];B[il];W[kk];B[jl];W[jm];B[kl];W[ll];B[km];W[kn];B[lm];W[mm];B[ln];W[lo];B[mn];W[nn];B[mo];W[mp];B[no];W[oo];B[np];W[nq];B[op];W[pp];B[oq];W[or];B[pq];W[qq];B[pr];W[ps];B[qr];W[rr];B[qs];W[rs])
+    </div>
+
+    <p>The second is the <i>attacker choice</i>, which allows the attacker (in this
+    case white) to choose which way to redirect a ladder. Throughout this
+    document, white will always be attacking black in a ladder, so the terms
+    <i>attacker choice</i> and <i>white choice</i> will be used
+    interchangably:</p>
+
+    <div class="besogo-viewer" orient="portrait" panels="control" portratio="none" nowheel="true" coord="western">
+      (;FF[4]GM[1]CA[UTF-8]AP[besogo:0.0.2-alpha]SZ[19]ST[0]AB[dp][ik][jk]AW[cp][dq][eq][ij][kk];W[do];B[ep];W[fp];B[eo];W[en];B[fo];W[go];B[fn];W[fm];B[gn];W[hn];B[gm];W[gl];B[hm];W[im];B[hl];W[hk];B[il](;W[jl];B[jj];W[ji];B[kj];W[lj];B[ki];W[kh];B[li];W[mi];B[lh];W[lg];B[mh];W[nh];B[mg];W[mf];B[ng];W[og];B[nf];W[ne];B[of];W[pf];B[oe];W[od];B[pe];W[qe];B[pd];W[pc];B[qd];W[rd];B[qc];W[qb];B[rc];W[sc];B[rb];W[ra];B[sb];W[sa])(;W[jj];B[jl];W[jm];B[kl];W[ll];B[km];W[kn];B[lm];W[mm];B[ln];W[lo];B[mn];W[nn];B[mo];W[mp];B[no];W[oo];B[np];W[nq];B[op];W[pp];B[oq];W[or];B[pq];W[qq];B[pr];W[ps];B[qr];W[rr];B[qs];W[rs]))
+    </div>
+
+    <p>The third is the <i>defender choice</i>, or (in this document) the
+    <i>black choice</i>, which allows the defender to choose which way to
+    redirect a ladder:</p>
+
+    <div class="besogo-viewer" orient="portrait" panels="control" portratio="none" nowheel="true" coord="western">
+      (;FF[4]GM[1]CA[UTF-8]AP[besogo:0.0.2-alpha]SZ[19]ST[0]AB[dp][hl][ik][ll]AW[cp][dq][eq][ij][il][km];W[do];B[ep];W[fp];B[eo];W[en];B[fo];W[go];B[fn];W[fm];B[gn];W[hn];B[gm];W[gl];B[hm];W[hk];B[im];W[in](;B[jm];W[jl];B[jn];W[jo];B[kn];W[ln];B[ko];W[kp];B[lo];W[mo];B[lp];W[lq];B[mp];W[np];B[mq];W[mr];B[nq];W[oq];B[nr];W[ns];B[or];W[pr];B[os];W[ps])(;B[jl];W[jm];B[il];W[kl];B[jk];W[kk];B[jj];W[ji];B[kj];W[lj];B[ki];W[kh];B[li];W[mi];B[lh];W[lg];B[mh];W[nh];B[mg];W[mf];B[ng];W[og];B[nf];W[ne];B[of];W[pf];B[oe];W[od];B[pe];W[qe];B[pd];W[pc];B[qd];W[rd];B[qc];W[qb];B[rc];W[sc];B[rb];W[ra];B[sb];W[sa]))
+    </div>
+
+    <p>The fourth is the <i>join</i>, which takes two diverging ladder paths and
+    combines them into a single one:</p>
+
+    <div class="besogo-viewer" orient="portrait" panels="control" portratio="none" nowheel="true" coord="western">
+      (;FF[4]GM[1]CA[UTF-8]AP[besogo:0.0.2-alpha]SZ[19]ST[0]AB[cj][dj][gf][gn][hf][hn][kj][lj][mj]AW[bj][ci][ck][ej][ge][go][he][ho][li][lk][mi][mk][nk](;W[di];B[dk];W[dl];B[ek];W[fk];B[el];W[em];B[fl];W[gl];B[fm];W[fn];B[gm];W[in];B[hm];W[hl];B[im];W[jm];B[il];W[ik];B[jl];W[kl];B[jk];W[jj];B[kk];W[ki];B[nj];W[oj];B[ni];W[nh];B[oi];W[pi];B[oh];W[og];B[ph];W[qh];B[pg];W[pf];B[qg];W[rg];B[qf];W[qe];B[rf];W[sf];B[re];W[rd];B[se];W[sd])(;W[dk];B[di];W[dh];B[ei];W[fi];B[eh];W[eg];B[fh];W[gh];B[fg];W[ff];B[gg];W[if];B[hg];W[hh];B[ig];W[jg];B[ih];W[ii];B[jh];W[kh];B[ji];W[jj];B[ki];W[kk];B[nj];W[oj];B[ni];W[nh];B[oi];W[pi];B[oh];W[og];B[ph];W[qh];B[pg];W[pf];B[qg];W[rg];B[qf];W[qe];B[rf];W[sf];B[re];W[rd];B[se];W[sd]))
+    </div>
+
+    <p>The fifth is the <i>ko probe</i>, where the result of the ladder is
+    dependent on the result of a ko. Note that this is a two-sided gadget, we
+    can probe the result of the ko in two different ways (through either of the
+    two marked stones in the following diagram):</p>
+
+    <div class="besogo-viewer" orient="portrait" panels="control" portratio="none" nowheel="true" coord="western">
+      (;FF[4]GM[1]CA[UTF-8]AP[besogo:0.0.2-alpha]SZ[19]ST[0]AB[dh][hg][id][jb][jc][kd][lg][ph]AW[cg][ch][di][hc][ie][if][jd][jf][ke][kf][lc][pi][qg][qh]TR[dh][ph](;B[je];W[eh];B[dg];W[df];B[eg];W[fg];B[ef];W[ee];B[ff];W[gf];B[fe];W[fd];B[ge](;W[he];B[gd];W[gc];B[hd](;W[ic];B[jd])(;W[jd];B[ic]))(;W[gd];B[he](;W[hf];B[hd];W[ic];B[jd])(;W[hd];B[hf])))(;B[oh];W[eh];B[dg];W[df];B[eg];W[fg];B[ef];W[ee];B[ff];W[gf];B[fe];W[fd];B[ge];W[he];B[gd];W[gc];B[hd];W[ic]))
+    </div>
+
+    <p>Treating each ko as a boolean, where being held by black is true and
+    being held by white is false, we can use these gadgets to simulate any
+    monotonic boolean formula (i.e. a formula with <code>AND</code> and
+    <code>OR</code> gates, but no <code>NOT</code> gates). For example, with
+    three kos labeled <code>X</code>, <code>Y</code>, and <code>Z</code>, we
+    could encode the formula <code>(X OR Y) AND (Y OR Z)</code> using the
+    following gadgets:</p>
+
+    <img src=formula-encoding.png>
+
+    <p>Again, sorry for the horrendous typesetting, I'm just trying to write
+    something down to get peer review. In this diagram, <code>W</code>
+    represents white choices, <code>B</code> represents black choices,
+    <code>J</code> represents a join, and <code>X</code>, <code>Y</code>, and
+    <code>Z</code> represent ko probes to their respective variables. At node 2,
+    black wins if and only if <code>X OR Y</code>. At node 3, black wins if and
+    only if <code>Y OR Z</code>. Therefore, at node 1, black wins if and only if
+    <code>(X OR Y) AND (Y OR Z)</code>. In general, we can encode any monotonic
+    boolean formula as a sequence of gadgets like this, where <code>OR</code>
+    gates turn into black choices, and <code>AND</code> gates turn into white
+    choices.</p>
+
+    <h2>Crasmaru's ko games encoding</h2>
+
+    <p>Consider the following go problem. Black to play, with the goal of saving
+    the bottom side group:</p>
+
+    <div class="besogo-viewer" orient="portrait" panels="control" portratio="none" nowheel="true" coord="western">
+      (;FF[4]GM[1]CA[UTF-8]AP[besogo:0.0.2-alpha]SZ[19]ST[0]AB[br][ci][cj][cq][dq][eq][er][fr][gm][go][gq][hh][hr][hs][ie][in][io][ip][ir][is][jc][jd][jn][jo][jp][jq][jr][js][ke][kn][ko][kp][kr][ks][lh][lr][ls][mm][mo][mq][nr][oq][or][pq][qi][qj][qq][rr]AW[bi][bj][dr][ds][es][fn][fo][fp][fq][fs][gl][gr][gs][hd][hm][ho][hq][if][ig][im][je][jg][jm][kf][kg][km][ld][lm][lo][lq][ml][mr][ms][nn][no][np][nq][ns][os][pr][ps][ri][rj]SQ[dr][ds][es][fs][gr][gs][mr][ms][ns][os][pr][ps]TR[gq][mq]MA[je](;B[qs];W[mp])(;B[mp];W[lp];B[mn];W[ln];B[nm];W[om];B[nl];W[nk];B[ol];W[pl];B[ok];W[oj];B[pk];W[qk];B[pj];W[qh];B[pi];W[oi];B[ph];W[pg];B[oh];W[nh];B[og];W[of];B[ng];W[mg];B[nf];W[ne];B[mf];W[lf];B[me];W[md];B[le];W[kd])(;B[jf];W[gp];B[mp];W[lp];B[mn];W[ln];B[nm];W[om];B[nl];W[nk];B[ol];W[pl];B[ok];W[oj];B[pk];W[qk];B[pj];W[qh];B[pi];W[oi];B[ph];W[pg];B[oh];W[nh];B[og];W[of];B[ng];W[mg];B[nf];W[ne];B[mf];W[lf];B[me];W[md];B[le];W[kd];B[je];W[he];B[qs];W[hn];B[qr]))
+    </div>
+
+    <p>Black is locally surrounded; there is no way for black to directly
+    connect the large black blob out to the center of the board where he could
+    hope to make eyes. Black's only option is to aim at capturing one of white's
+    groups, marked with squares. If black goes for that directly by playing at
+    A, white will simply save by capturing a black stone. Therefore, black must
+    save the stone first, although if black tries playing directly at B, white
+    can capture in a ladder that runs into a ko. Therefore, black's only winning
+    move is to capture the ko with C. This makes miai of the two ladders, if
+    white fixes the ladder on the left side of the board, then black will run
+    out the ladder on the right side of the board, and vice versa. Once black's
+    stone is safe, black can come back and capture white stones.</p>
+
+    <p>We can extend this problem to add more kos and a more complex ladder.
+    An example of such a problem can be found in Crasmaru's <a href=https://senseis.xmp.net/?Crasmarum>page</a>
+    on Sensei's Library (<a
+    href='https://natechoe1.github.io/ladders/?H4sIAFBw1GoAA8WUuxnDIAyEe0+RCWjceItrb/9JgoAgCYFx0oTC1od+Dj2A83qd15EejQEDEvOP2cjmEiMFhRhirrCiSFTde4yJYS5iEh32WJqITbHJ8JhWATcp1CLUFO4KAnShbUEQE51gJDjkSnwwFfB1K/sbjOpSrda3jIE7jAZTn9u0lKZvCqvDupJ9mUnB0Oh/HUfRdOkPfZIAefi42A85XXy+vFzY3x+k2Egzp9jkzOpcxzDFMGJPY/snFvs5xShvUUh7xNCuHjaYXJhwaH5SazpsmgtM3MVfvrBdDk9Nw8an5g2ItKRL0AUAAA=='>also
+    viewable here</a>). Let <code>F<sub>1</sub></code> be the boolean formula
+    encoded in the left ladder, and <code>F</sub>2</sub></code> be the formula
+encoded in the right ladder. Black wins if, at the start of his turn,
+<code>F<sub>1</sub> OR F<sub>2</sub></code>. Similarly, white wins if, at the
+start of her turn, <code>(NOT F<sub>1</sub>) OR (NOT F<sub>2</sub>)</code>.</p>
+
+    <p>Initially, it's black to play and both formulas are false. Black must
+    capture some ko to turn both formulas true. Then, white must capture some ko
+    to turn both formulas false. Both players continue capturing kos until at
+    some point it becomes impossible to flip both boolean formulas, at which
+    point the other player will run out the proper ladder and win the game.</p>
+
+    <p>The specific case where <code>F<sub>1</sub> = F<sub>2</sub></code>
+    &mdash; called the <i>ko game</i> by Robson, but which will hereon be referred
+    to as the <i>symmetric ko game</i> &mdash; was shown to be EXPTIME-complete by
+    Robson under Japanese ko rules (Australia National University, TR-CS-82-02,
+    "Exponential Time Decision Problems Relating to KO-like Transition
+    rules"). In Robson's setup, black is aiming for a direct win while white is
+    aiming for a draw by triple ko. The necessity of a triple ko obviously means
+    that this encoding doesn't work with superko. The primary contribution of
+    this proof is the idea to use two different formulas to create stricter
+    conditions on both players.</p>
+
+    <h2>Motivating two formulas</h2>
+
+    <p>This is a concept formed early in the process of developing this proof.
+    For various reasons it didn't turn out to be very fruitful, but it provides
+    a good pedagogical foundation for why having two different formulas may be
+    valuable, and it provides a gadget that will be useful in a different
+    context later.</p>
+
+    <p>The fact that our boolean formulas must be monotonic is a very strong
+    restriction the setup of the ko game. To circumvent this, we may consider a
+    simulated "ko variable", which is actually made up of three individual
+    kos. In this case, if either player has control of
+    <code>(A AND C) OR (B AND C)</code> they win. This restriction leads to the
+    following three move forced sequence:</p>
+
+    <div class="besogo-viewer" orient="portrait" panels="control" portratio="none" nowheel="true" coord="western">
+      (;FF[4]GM[1]CA[UTF-8]AP[besogo:0.0.2-alpha]SZ[19]ST[0]AB[dd][dj][dp][ec][ee][ei][ek][eo][eq][fd][fj]AW[ep][fc][fe][fi][fk][fo][fq][gd][gj][gp]LB[bd:A][bj:B][bp:C];W[ej]TR[bj][bp];B[fp]TR[bd][bq];W[ed])
+    </div>
+
+    <p>These three kos effectively act as a single variable. Once a player
+    begins this sequence every move is forced until every variable is flipped
+    and the turn is passed. Notably, ko C is always held by the player who
+    <i>doesn't</i> have control over the variable, so a monotonic boolean
+    formula can use ko C to simulate a <code>NOT</code> gate. There are many
+    issues with this particular approach, one of which being that it must be
+    possible to catch deviations from either player. One potential deviation
+    would be to ignore your opponent's threat and play at some other variable.
+    In the following diagram, <code>ABC</code> forms one compond variable and
+    <code>DEF</code> forms another compound variable.</p>
+
+    <div class="besogo-viewer" orient="portrait" panels="control" portratio="none" nowheel="true" coord="western">
+      (;FF[4]GM[1]CA[UTF-8]AP[besogo:0.0.2-alpha]SZ[19]ST[0]AB[dd][dj][dp][ec][ee][ei][ek][eo][eq][fd][fj][np][oc][oe][oi][ok][oo][oq][pd][pj][pp]AW[ep][fc][fe][fi][fk][fo][fq][gd][gj][gp][md][mj][mp][nc][ne][ni][nk][no][nq][od][oj]LB[bd:A][bj:B][bp:C][rd:D][rj:E][rp:F];B[nj];W[ej])
+    </div>
+
+    <p>Black's move at ko F is initiating a variable flip. White should respond
+    at ko F to continue the flipping sequence, but white instead plays at ko B
+    creating a threat of her own. Suppose that black were to challenge at this
+    point; who would win? Both players have a set of kos which gives them a
+    reasonable right to challenge and win. If we give priority to black, then
+    any deviations by black would go unpunished. Similarly, if we give priority
+    to white, then any deviations by white would go unpunished. We can fix this
+    by having two different formulas, where one gives priority to black and the
+    other gives priority to white. When one player deviates, the other player
+    gets to choose which formula to get evaluated against and win.</p>
+
+    <h2>The actual gadgets</h2>
+
+    <p>This gadget is the <i>6 ko variable</i>. It is a partisan gadget, this
+    variable is controlled by black, who gets to decide when it gets flipped
+    while keeping the initiative. Black wins if he holds
+    <code>ADEF OR ABEF OR ABCF</code>. White wins if she holds
+    <code>DBC OR DEC</code>. If black is currently holding all of the kos on the
+    left column, then the variable is false. If black is currently holding all
+    of the kos on the right column, then the variable is true. There is exactly
+    one 6 move forcing sequence which flips the value of variable, and even in
+    Japanese rules black is not allowed to flip the same variable twice in a
+    row. Finally, there is exactly one moment in this sequence where it's white
+    to play and she has both kos C and D, which allows white to detect when
+    black is trying to flip a variable and make a challenge if he's not allowed
+    to do so.</p>
+
+    <div class="besogo-viewer" orient="portrait" panels="control" portratio="none" nowheel="true" coord="western">
+      (;FF[4]GM[1]CA[UTF-8]AP[besogo:0.0.2-alpha]SZ[19]ST[0]AB[dd][dj][dp][ec][ee][ei][ek][eo][eq][nd][nj][np][oc][oe][oi][ok][oo][oq][pd][pj][pp]AW[ed][ej][ep][fc][fe][fi][fk][fo][fq][gd][gj][gp][md][mj][mp][nc][ne][ni][nk][no][nq]LB[bd:A][bj:B][bp:C][rd:D][rj:E][rp:F];B[fd]TR[bd][rd][rj][rp];W[od]TR[bj][bp][rd];B[fj]TR[bd][bj][rj][rp]MA[cp][qd];W[oj]TR[bp][rd][rj];B[fp]TR[bp][rd][rj][rp];W[op];B[sa];W[sb];B[np]TR[bp][rd][rj][rp];W[ep]TR[bp][rd][rj];B[nj]TR[bd][bj][rj][rp]MA[cp][qd];W[ej]TR[bj][bp][rd];B[nd]TR[bd][rd][rj][rp];W[ed])
+    </div>
+
+    <p>We also use that 3 ko variable from earlier to act allow players to pass
+    control of the game to the opponent.</p>
+
+    <h2>G<sub>1</sub></h2>
+
+    <p>G<sub>1</sub> is the simplest EXPTIME-complete game. There are two
+    players X and Y, who each have a set of variables
+    <code>X<sub>i..n</sub></code>, <code>Y<sub>i..n</sub></code>, as well as
+    a boolean formula <code>F<sub>X</sub>(X, Y)</code>,
+    <code>F<sub>Y</sub>(X, Y)</code>. On each move, players assign some value to
+    each of their variables, where their assignment must satisfy their
+    formula. This game was shown by Robson to be EXPSPACE-complete with
+    superko. We show a direct encoding from G<sub>1</sub> to these gadgets which
+    preserves the superko rule.</p>
+
+    <h2>Encoding G<sub>1</sub></h2>
+
+    <p>Each player has <code>2n+2</code> 6 ko variables: One copy of your own
+    variables, one copy of your opponent's variables, as well as an 2 extra
+    clock variables called CLOCK<sub>1..2</sub>, used to prevent cheating.
+    There's also a 3 ko latch to allow players to pass the turn to their
+    opponent. A single move in G<sub>1</sub> turns into the following
+    procedure:</p>
+
+    <ol>
+      <li>Flip CLOCK<sub>1</sub></li>
+      <li>Update your copy of your opponent's variables to match your
+        opponent's, going in order from 1 to n.</li>
+      <li>Flip CLOCK<sub>2</sub></li>
+      <li>Update your own variables to their new values, going from 1 to n.</li>
+      <li>Activate the 3 ko latch to pass the turn to the opponent</li>
+    </ol>
+
+    <p>When black begins his turn,
+    <span>CLOCK_B = CLOCK_W</span>. Then, when black ends his turn (and white
+    begins her turn), <span>CLOCK_B &ne; CLOCK_W</span>. Finally, when white
+    ends her turn (and black begins his turn),
+    <span>CLOCK_B = CLOCK_W</span></p>
+
+    <p>We define the compound term BLACK_FORCING as follows:</p>
+
+    <pre>BLACK_FORCING = BLACK_TRANSITIONING | BLACK_LATCHING | WHITE_SLOW | WHITE_FAIL | WHITE_BAD_PASS | WHITE_BAD_TRANSITIONING
+BLACK_TRANSITIONING = BLACK_TRANS_BLACK | BLACK_TRANS_WHITE
+BLACK_TRANS_BLACK = [black has ADEF OR ABEF OR ABCF for some black variable]
+BLACK_TRANS_WHITE = [black has DBC OR DEC for some white variable]
+BLACK_LATCHING = [black has AC or BC on the latch]
+WHITE_SLOW = [black has AB on the latch] AND [black has (ABC OR DEF) for every white variable]
+
+WHITE_FAIL = [it's black's turn to set variables, and WHITE_CLOCK_<sub>1</sub> &ne; WHITE_CLOCK<sub>2</sub>
+             [it's black's turn to set variables, black has not yet set CLOCK<sub>1</sub>, and white's copy of black's variables doesn't match black's copy] |
+             [it's black's turn to set variables, black has not yet set CLOCK<sub>1</sub>, and white has failed to satisfy her boolean formula]
+
+# we can arrange white's variables left to right as CLOCK_W<sub>1</sub> X CLOCK_W<sub>2</sub> Y
+# white must flip these variables from left to right. if there's ever any deviation, we can detect that and give
+# black the win.
+WHITE_BAD_TRANSITIONING =
+  [white is transitioning any variable, and hasn't transitioned CLOCK<sub>1</sub> yet] |
+  [white is transitioning X<sub>i</sub>, but there exists j&lt;i, such that WHITE_X<sub>j</sub> &ne; BLACK_X<sub>j</sub>] |
+  [white is transitioning X<sub>i</sub>, white has already set CLOCK<sub>2</sub>] |
+  [white is transitioning CLOCK<sub>2</sub>, but BLACK_X &ne; WHITE_X] |
+  [white is transitioning Y<sub>i</sub>, white hasn't yet updated CLOCK<sub>2</sub>] |
+  [white is transitioning Y<sub>i</sub>, but there exists j&gt;i, such that WHITE_Y<sub>j</sub> &ne; BLACK_X<sub>j</sub>] |
+    </pre>
+
+    <p>We can define the correlary WHITE_FORCING to be the same expression,
+    except that black and white's perspectives are reversed. Intuitively,
+    BLACK_FORCING is true if black is making a forcing move, and WHITE_FORCING
+    is false if white is making a forcing move. In the end,
+    <code>F<sub>1</sub> = BLACK_FORCING OR WHITE_FORCING</code>, and
+    <code>F<sub>2</sub> = WHITE_FORCING AND BLACK_FORCING</code>. For any
+    deviation, the deviating player will eventually be punished. In the
+    proceeding paragraphs, we will describe a single G<sub>1</sub> turn by
+    black, and note after black passes his turn to white she will be in a
+    symmetrical position.</p>
+
+    <p>Any deviation by white is immediately punished. Each individual move on a
+    gadget activates BLACK_FORCING, so if white plays anywhere other than on
+    that local gadget, black can immediately run out <code>F<sub>1</sub></code>
+    and win. For the 3 ko latch, there is exactly one possible response to each
+    of black's forcing moves, so there is no possible deviation. For the 6 ko
+    latch, assuming that black is choosing to make a transition which would not
+    violate BLACK_BAD_TRANSITIONING (which would be a mistake anyways), there is
+    no local move by white which would falsify WHITE_FORCING, so for any
+    deviation black can run out <code>F<sub>1</sub></code> and win.</p>
+
+    <p>Deviations by black are also punished. If black plays any move which
+    isn't either a black 6 ko variable or a 3 ko latch (i.e. black tries to play
+    on one of white's variables during his turn), black activates BLACK_SLOW,
+    which allows white to run out <code>F<sub>2</sub></code> and win. If black
+    tries to set a variable out of order of the clocks, black is always
+    punished. If black ever sets a variable out of order within a segment
+    between two clock set moves, black is also punished. Finally, if black tries
+    to pass his turn earl, black is punished.</p>
+
+    <p>First we examine the period between black setting CLOCK<sub>1</sub> and
+    CLOCK<sub>2</sub>, where black is updating BLACK_Y to match WHITE_Y. Note
+    that black will have some prefix where BLACK_Y = WHITE_Y, and some suffix
+    where black has yet to begin updating those variables. At any point, black
+    should always update the first variable of the suffix. If black tries
+    skipping a variable update and updates some other variable in the suffix,
+    black violates BLACK_BAD_TRANSITIONING and white can challenge. If black
+    tries updating some already-set variable in the prefix, black is not
+    immediately punished; however, after that variable flip the suffix of
+    mismatched variables begins at that newly set variable. Black is not allowed
+    to immediately flip that variable back by the ko rule, black also can't
+    update any other variable in the suffix by the previously described logic,
+    so black is forced to update some earlier value in the prefix. This process
+    continues until black is forced to reset CLOCK<sub>1</sub>. After this
+    reset, every move becomes an illegal transition by the formula, except for
+    CLOCK<sub>1</sub>, which is illegal by ko. Finally, if black tries to flip
+    the latch, white can punish through BLACK_FAIL. Therefore, black has no
+    winning move.</p>
+
+    <p>Next we examine the period after black sets CLOCK<sub>2</sub>. Black has
+    some prefix of variables which he has updated, and some suffix which he
+    hasn't yet updated where BLACK_X = WHITE_X. If black tries to update a value
+    in the prefix, it's detected and white can punish with
+    BLACK_BAD_TRANSITIONING. If black turns back and tries to update
+    CLOCK<sub>2</sub> after changing some value, that's also detected and
+    punished.</p>
+
+    <p>If black tries to flip the 3 ko latch at the immediate start of his turn,
+    black is unable to make the final move due to superko. If black tries to
+    flip the latch in the interregnum between setting CLOCK<sub>1</sub> and
+    CLOCK<sub>2</sub>, white can detect that and punish with BLACK_FAIL.</p>
+  </body>
+</html>
+
+<style>
+body {
+  max-width: 768px;
+  margin: 0 auto;
+}
+
+code,span {
+  white-space: nowrap;
+}
+
+</style>
