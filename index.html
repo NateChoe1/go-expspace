@@ -33,9 +33,8 @@
     people with some experience playing go; maybe a later version of this
     document will be more accessible, but right now I'm prioritizing just
     getting something written down and out in the public as fast as possible so
-    that other people can review my work for mistakes. There are almost
-    certainly errors in this proof, although the general line of inquiry seems
-    very fruitful so far.</p>
+    that other people can review my work for mistakes. There may be errors in
+    here, although none are immediately obvious to me.</p>
 
     <h2>Crasmaru's gadgets</h2>
 
@@ -239,7 +238,7 @@ start of her turn, <code>(NOT F<sub>1</sub>) OR (NOT F<sub>2</sub>)</code>.</p>
     and white's will be referred to with the WHITE_ prefix. Black's
     G<sub>3</sub> variables will be referred to as X, white's will be
     referred to as Y, and the clock variables will be referred to as
-    CLOCK_{X|Y}<sub>1..2</sub>, where X and Y correspond to black and white
+    <span>CLOCK_{X|Y}<sub>1..2</sub></span>, where X and Y correspond to black and white
     respectively. A single move in G<sub>3</sub> will be played as follows:</p>
 
     <ol>
@@ -330,18 +329,17 @@ BLACK_BAD_TRANSITIONING =
   (for all i, T(BLACK_Y<sub>i</sub>) | CLOCK_X<sub>2</sub> &ne; CLOCK_Y<sub>2</sub>) &amp;
   (for all i, T(BLACK_Y<sub>i</sub>) | (for all j&ne;i, BLACK_Y<sub>j</sub> = WHITE_Y<sub>j</sub>))
 
-F<sub>1</sub> = BLACK_FORCING | WHITE_FORCING
-F<sub>2</sub> = BLACK_FORCING &amp; WHITE_FORCING
+F<sub>1</sub> = BLACK_FORCING
+F<sub>2</sub> = WHITE_FORCING
     </pre>
 
     <p>The bulk of this set of formulas are the two compounts BLACK_FORCING and
     WHITE_FORCING, which are complementary of each other. Generally,
-    BLACK_FORCING indicates that black has made a forcing move, and
-    WHITE_FORCING indicates that white has made a forcing move.
-    <code>F<sub>1</sub></code> gives priority to black whenever evaluating which
-    forcing move is more important, and <code>F<sub>2</sub></code> gives
-    priority to white. Note that the clock variables step through the following
-    four step sequence with each G<sub>3</sub> move:</p>
+    BLACK_FORCING indicates that black is threatening a win, and WHITE_FORCING
+    indicates that white is threatening a win. Because of our choices for our
+    formulas, on each turn a player must both answer their opponent's threat and
+    create a threat of their own. Note that the clock variables step through the
+    following four step sequence with each G<sub>3</sub> move:</p>
 
     <table>
       <tr>
@@ -389,17 +387,17 @@ F<sub>2</sub> = BLACK_FORCING &amp; WHITE_FORCING
     gadgets. If black initiates a 6 ko variable and white doesn't respond within
     the gadget, then black can challenge based on BLACK_TRANS_BLACK. Similarly,
     when white continues the 6 ko transition, black can't ignore white's
-    responses. Also, on black's turn, black must either initiate a 6 ko variable
-    or initiate the latch, as if black plays anywhere else (i.e. black tries to
-    play on white's variables during his turn), white can punish based on
-    BLACK_SLOW.</p>
-
-    <blockquote>NOTE: I think there might be some weird stuff if black plays a
-      nonstandard move within a 6 ko gadget. For example, if black starts by
-      flipping ko B in a true 6 ko variable, then I'm not entirely sure what
-      white's punishment against that is. This seems simple enough to fix
-      though. For now, let's just assume that these gadget operations are atomic
-      and move on.</blockquote>
+    responses. White can't deviate within a 6 ko transition either; any white
+    move which is out of sequence within a 6 ko variable cannot influence the
+    formula, except to set <code>T(v)</code> for that variable. If this result
+    would lead to a white threat, then white would win anyways by simply playing
+    out the normal transition sequence. If this result doesn't lead to a white
+    threat, then black wins as white player is no longer making a direct threat.
+    Any deviation from black within a 6 ko latch sequence also forfeits any
+    direct threats, leading to a white victory. Also, on black's turn, black
+    must either initiate a 6 ko variable or initiate the latch, as if black
+    plays anywhere else (i.e. black tries to play on white's variables during
+    his turn), white can punish based on BLACK_SLOW.</p>
 
     <p>This means that the player who isn't currently making a G<sub>3</sub>
     move is punished very quickly for any deviations. Every move by the current
@@ -409,7 +407,11 @@ F<sub>2</sub> = BLACK_FORCING &amp; WHITE_FORCING
 
     <p>Catching cheating by the current player is harder. We'll take white to be
     the current player making a move on G<sub>3</sub> and demonstrate how black
-    can punish any deviation from the proper sequence.</p>
+    can punish any deviation from the proper sequence. As demonstrated earlier,
+    gadget transitions are atomic; any deviations within a gadget activation
+    sequence are immediately punished by the loss of a threat against the
+    opponent, so we may take a higher level look at the structure of the gadget
+    activations.</p>
 
     <p>On the first move, white must flip CLOCK_Y<sub>1</sub>. If white tries to
     flip any other variable, black can catch her with WHITE_BAD_TRANSITIONING.
