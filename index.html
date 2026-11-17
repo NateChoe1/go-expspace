@@ -25,7 +25,7 @@
   <body onload="besogo.autoInit()">
     <h1>Go with superko is EXPSPACE-complete</h1>
 
-    <p>Written by Nate Choe, 2026-11-16</p>
+    <p>Written by Nate Choe, November 2026</p>
     <p>Also, I don't know how to use LaTeX and trying to typeset go positions
     is confusing me, so you get hand-written HTML.</p>
     <p>Also also, I'll be assuming familiarity with what a superko is and how
@@ -33,7 +33,9 @@
     people with some experience playing go; maybe a later version of this
     document will be more accessible, but right now I'm prioritizing just
     getting something written down and out in the public as fast as possible so
-    that other people can review my work for mistakes.</p>
+    that other people can review my work for mistakes. There are almost
+    certainly errors in this proof, although the general line of inquiry seems
+    very fruitful so far.</p>
 
     <h2>Crasmaru's gadgets</h2>
 
@@ -219,128 +221,221 @@ start of her turn, <code>(NOT F<sub>1</sub>) OR (NOT F<sub>2</sub>)</code>.</p>
     <p>We also use that 3 ko variable from earlier to act allow players to pass
     control of the game to the opponent.</p>
 
-    <h2>G<sub>1</sub></h2>
+    <h2>G<sub>3</sub></h2>
 
-    <p>G<sub>1</sub> is the simplest EXPTIME-complete game. There are two
-    players X and Y, who each have a set of variables
-    <code>X<sub>i..n</sub></code>, <code>Y<sub>i..n</sub></code>, as well as
-    a boolean formula <code>F<sub>X</sub>(X, Y)</code>,
-    <code>F<sub>Y</sub>(X, Y)</code>. On each move, players assign some value to
-    each of their variables, where their assignment must satisfy their
-    formula. This game was shown by Robson to be EXPSPACE-complete with
-    superko. We show a direct encoding from G<sub>1</sub> to these gadgets which
-    preserves the superko rule.</p>
+    <p>G<sub>3</sub> is an EXPTIME-complete game. There are two players X and Y,
+    who each have a set of variables <code>X<sub>i..n</sub></code>,
+    <code>Y<sub>i..n</sub></code>, as well as a boolean formula
+    <code>F<sub>X</sub>(X, Y)</code>, <code>F<sub>Y</sub>(X, Y)</code>. On each
+    move, players flip exactly one of their variables, and must satisfy their
+    formula at the end of their turn. G<sub>3</sub> is EXPSPACE-complete with
+    superko.</p>
 
-    <h2>Encoding G<sub>1</sub></h2>
+    <h2>Encoding G<sub>3</sub></h2>
 
     <p>Each player has <code>2n+2</code> 6 ko variables: One copy of your own
-    variables, one copy of your opponent's variables, as well as an 2 extra
-    clock variables called CLOCK<sub>1..2</sub>, used to prevent cheating.
-    There's also a 3 ko latch to allow players to pass the turn to their
-    opponent. A single move in G<sub>1</sub> turns into the following
-    procedure:</p>
+    variables, one of your opponent's, and two clock variables. From here,
+    black's variables in the ko game will be referred to with the BLACK_ prefix,
+    and white's will be referred to with the WHITE_ prefix. Black's
+    G<sub>3</sub> variables will be referred to as X, white's will be
+    referred to as Y, and the clock variables will be referred to as
+    CLOCK_{X|Y}<sub>1..2</sub>, where X and Y correspond to black and white
+    respectively. A single move in G<sub>3</sub> will be played as follows:</p>
 
     <ol>
-      <li>Flip CLOCK<sub>1</sub></li>
-      <li>Update your copy of your opponent's variables to match your
-        opponent's, going in order from 1 to n.</li>
-      <li>Flip CLOCK<sub>2</sub></li>
-      <li>Update your own variables to their new values, going from 1 to n.</li>
-      <li>Activate the 3 ko latch to pass the turn to the opponent</li>
+      <li>Black updates BLACK_CLOCK<sub>1</sub></li>
+      <li>If the old clock value was 1 (i.e. black has transitioned the clock
+        from true to false), black updates one of his own variables.</li>
+      <li>Black updates BLACK_CLOCK<sub>2</sub></li>
+      <li>If necessary, black updates his copy of white's variables to respond
+        to white's previous move</li>
     </ol>
 
-    <p>When black begins his turn,
-    <span>CLOCK_B = CLOCK_W</span>. Then, when black ends his turn (and white
-    begins her turn), <span>CLOCK_B &ne; CLOCK_W</span>. Finally, when white
-    ends her turn (and black begins his turn),
-    <span>CLOCK_B = CLOCK_W</span></p>
+    <p>We use the following compound formulas to enforce this sequence:</p>
 
-    <p>We define the compound term BLACK_FORCING as follows:</p>
+    <pre># BLACK_SENTE indicates that black is currently making his move, WHITE_SENTE
+# indicates that white is doing so
+BLACK_SENTE = [black has C on the latch]
+WHITE_SENTE = [black has AB on the latch]
 
-    <pre>BLACK_FORCING = BLACK_TRANSITIONING | BLACK_LATCHING | WHITE_SLOW | WHITE_FAIL | WHITE_BAD_PASS | WHITE_BAD_TRANSITIONING
+# terms which allow black to win if white deviates
+BLACK_FORCING = BLACK_TRANSITIONING | BLACK_LATCHING | WHITE_SLOW | WHITE_FAIL | WHITE_BAD_TRANSITIONING
+
+# terms which save black if white doesn't continue with the gadgets
 BLACK_TRANSITIONING = BLACK_TRANS_BLACK | BLACK_TRANS_WHITE
-BLACK_TRANS_BLACK = [black has ADEF OR ABEF OR ABCF for some black variable]
-BLACK_TRANS_WHITE = [black has DBC OR DEC for some white variable]
+BLACK_TRANS_BLACK = [black has ADEF OR ABEF OR ABCF for some black 6 ko variable]
+BLACK_TRANS_WHITE = [black has DBC OR DEC for some white 6 ko variable]
 BLACK_LATCHING = [black has AC or BC on the latch]
-WHITE_SLOW = [black has AB on the latch] AND [black has (ABC OR DEF) for every white variable]
+WHITE_SLOW = WHITE_SENTE AND [black has (ABC | DEF) for every white variable]
 
-WHITE_FAIL = [it's black's turn to set variables, and WHITE_CLOCK_<sub>1</sub> &ne; WHITE_CLOCK<sub>2</sub>
-             [it's black's turn to set variables, black has not yet set CLOCK<sub>1</sub>, and white's copy of black's variables doesn't match black's copy] |
-             [it's black's turn to set variables, black has not yet set CLOCK<sub>1</sub>, and white has failed to satisfy her boolean formula]
+# terms which save black if white makes a mistake during her turn
 
-# we can arrange white's variables left to right as CLOCK_W<sub>1</sub> X CLOCK_W<sub>2</sub> Y
-# white must flip these variables from left to right. if there's ever any deviation, we can detect that and give
-# black the win.
+T(VAR) = [white is transitioning her variable VAR, i.e. black has kos CD on VAR]
+
+WHITE_FAIL = BLACK_SENTE &amp;
+             CLOCK_X<sub>1</sub> = CLOCK_Y<sub>1</sub> &amp;
+             (BLACK_X &ne; WHITE_X |
+              CLOCK_Y<sub>1</sub> &ne; CLOCK_Y<sub>2</sub> |
+              [white has failed to satisfy her formula] |
+              ((CLOCK_X<sub>1</sub> = 0 &amp; BLACK_Y = WHITE_Y) |
+               (CLOCK_X<sub>1</sub> = 1 &amp; BLACK_Y &ne; WHITE_Y))
+
 WHITE_BAD_TRANSITIONING =
-  [white is transitioning any variable, and hasn't transitioned CLOCK<sub>1</sub> yet] |
-  [white is transitioning X<sub>i</sub>, but there exists j&lt;i, such that WHITE_X<sub>j</sub> &ne; BLACK_X<sub>j</sub>] |
-  [white is transitioning X<sub>i</sub>, white has already set CLOCK<sub>2</sub>] |
-  [white is transitioning CLOCK<sub>2</sub>, but BLACK_X &ne; WHITE_X] |
-  [white is transitioning Y<sub>i</sub>, white hasn't yet updated CLOCK<sub>2</sub>] |
-  [white is transitioning Y<sub>i</sub>, but there exists j&gt;i, such that WHITE_Y<sub>j</sub> &ne; BLACK_X<sub>j</sub>] |
+  (T(CLOCK_Y<sub>1</sub>) &amp; (WHITE_Y &ne; BLACK_Y)) |
+  (for some i, T(WHITE_Y<sub>i</sub>) &amp; CLOCK_Y<sub>1</sub> &ne; CLOCK_X<sub>1</sub>) |
+  (for some i, T(WHITE_Y<sub>i</sub>) &amp; CLOCK_Y<sub>2</sub> = CLOCK_X<sub>1</sub>) |
+  (for some i, T(WHITE_Y<sub>i</sub>) &amp; (for some j&ne;i, WHITE_Y<sub>j</sub> &ne; BLACK_Y<sub>j</sub>)) |
+  (T(CLOCK_Y<sub>2</sub>) &amp; CLOCK_Y<sub>1</sub> &ne; CLOCK_X<sub>1</sub>) |
+  (T(CLOCK_Y<sub>2</sub>) &amp; CLOCK_X<sub>1</sub> &amp; WHITE_Y &ne; BLACK_Y) |
+  (T(CLOCK_Y<sub>2</sub>) &amp; NOT CLOCK_X<sub>1</sub> &amp; WHITE_Y = BLACK_Y) |
+  (for some i, T(WHITE_X<sub>i</sub>) &amp; CLOCK_Y<sub>1</sub> &ne; CLOCK_X<sub>1</sub>) |
+  (for some i, T(WHITE_X<sub>i</sub>) &amp; CLOCK_Y<sub>2</sub> &ne; CLOCK_X<sub>2</sub>) |
+  (for some i, T(WHITE_X<sub>i</sub>) &amp; (for some j&ne;i, WHITE_X<sub>j</sub> &ne; BLACK_X<sub>j</sub>))
+
+# terms which allow white to win if black deviates. this is essentially the
+# inverse of the above, except that when things are false that's good for white.
+#
+# these terms relate to white's win conditions, but are written from black's
+# perspective, which converts AND gates to OR gates and vice versa.
+WHITE_FORCING = WHITE_TRANSITIONING &amp; WHITE_LATCHING &amp; BLACk_SLOW &amp; BLACk_FAIL &amp; BLACK_BAD_TRANSITIONING
+
+# terms which save black if white doesn't continue with the gadgets
+WHITE_TRANSITIONING = WHITE_TRANS_BLACK &amp; WHITE_TRANS_WHITE
+WHITE_TRANS_BLACK = [black has (A|D|E|F) AND (A|B|E|F) AND (A|B|C|F) for some white 6 ko variable]
+WHITE_TRANS_WHITE = [black has (D|B|C) AND (D|E|C) for white black 6 ko variable]
+WHITE_LATCHING = [black has (A|C) and (B|C) on the latch]
+BLACK_SLOW = [black has A|B on the latch] AND [black has (A|B|C) AND (D|E|F) for every black variable]
+
+# terms which save white if black makes a mistake during her turn
+
+T'(VAR) = [black is not transitioning his variable VAR, i.e. black has C|D on VAR]
+
+BLACK_FAIL = BLACK_SENTE |
+             CLOCK_X<sub>1</sub> = CLOCK_Y<sub>1</sub> |
+              (BLACK_Y = WHITE_Y &amp;
+               CLOCK_X<sub>1</sub> = CLOCK_X<sub>2</sub> &amp;
+               [black has successfully satisfied his formula] &amp;
+               ((CLOCK_Y<sub>1</sub> = 0 | BLACK_X &ne; WHITE_X) &amp;
+                (CLOCK_Y<sub>1</sub> = 1 | BLACK_X = WHITE_X))
+
+BLACK_BAD_TRANSITIONING =
+  (T'(CLOCK_X<sub>1</sub>) | (WHITE_X = BLACK_X)) &amp;
+  (for all i, T'(BLACK_X<sub>i</sub>) | CLOCK_X<sub>1</sub> &ne; CLOCK_Y<sub>1</sub>) &amp;
+  (for all i, T'(BLACK_X<sub>i</sub>) | CLOCK_X<sub>2</sub> = CLOCK_Y<sub>1</sub>) &amp;
+  (for all i, T'(BLACK_X<sub>i</sub>) | (for all j&ne;i, BLACK_X<sub>j</sub> = WHITE_X<sub>j</sub>)) &amp;
+  (T'(CLOCK_X<sub>2</sub>) | CLOCK_X<sub>1</sub> &ne; CLOCK_Y<sub>1</sub>) &amp;
+  (T'(CLOCK_X<sub>2</sub>) | NOT CLOCK_Y<sub>1</sub> &amp; WHITE_Y &ne; BLACK_Y) &amp;
+  (T'(CLOCK_X<sub>2</sub>) | CLOCK_Y<sub>1</sub> &amp; WHITE_Y = BLACK_Y) &amp;
+  (for all i, T(BLACK_Y<sub>i</sub>) | CLOCK_X<sub>1</sub> &ne; CLOCK_Y<sub>1</sub>) &amp;
+  (for all i, T(BLACK_Y<sub>i</sub>) | CLOCK_X<sub>2</sub> &ne; CLOCK_Y<sub>2</sub>) &amp;
+  (for all i, T(BLACK_Y<sub>i</sub>) | (for all j&ne;i, BLACK_Y<sub>j</sub> = WHITE_Y<sub>j</sub>))
+
+F<sub>1</sub> = BLACK_FORCING | WHITE_FORCING
+F<sub>2</sub> = BLACK_FORCING &amp; WHITE_FORCING
     </pre>
 
-    <p>We can define the correlary WHITE_FORCING to be the same expression,
-    except that black and white's perspectives are reversed. Intuitively,
-    BLACK_FORCING is true if black is making a forcing move, and WHITE_FORCING
-    is false if white is making a forcing move. In the end,
-    <code>F<sub>1</sub> = BLACK_FORCING OR WHITE_FORCING</code>, and
-    <code>F<sub>2</sub> = WHITE_FORCING AND BLACK_FORCING</code>. For any
-    deviation, the deviating player will eventually be punished. In the
-    proceeding paragraphs, we will describe a single G<sub>1</sub> turn by
-    black, and note after black passes his turn to white she will be in a
-    symmetrical position.</p>
+    <p>The bulk of this set of formulas are the two compounts BLACK_FORCING and
+    WHITE_FORCING, which are complementary of each other. Generally,
+    BLACK_FORCING indicates that black has made a forcing move, and
+    WHITE_FORCING indicates that white has made a forcing move.
+    <code>F<sub>1</sub></code> gives priority to black whenever evaluating which
+    forcing move is more important, and <code>F<sub>2</sub></code> gives
+    priority to white. Note that the clock variables step through the following
+    four step sequence with each G<sub>3</sub> move:</p>
 
-    <p>Any deviation by white is immediately punished. Each individual move on a
-    gadget activates BLACK_FORCING, so if white plays anywhere other than on
-    that local gadget, black can immediately run out <code>F<sub>1</sub></code>
-    and win. For the 3 ko latch, there is exactly one possible response to each
-    of black's forcing moves, so there is no possible deviation. For the 6 ko
-    latch, assuming that black is choosing to make a transition which would not
-    violate BLACK_BAD_TRANSITIONING (which would be a mistake anyways), there is
-    no local move by white which would falsify WHITE_FORCING, so for any
-    deviation black can run out <code>F<sub>1</sub></code> and win.</p>
+    <table>
+      <tr>
+        <th>Playing player</th>
+        <th>CLOCK<sub>B</sub></th>
+        <th>CLOCK<sub>W</sub></th>
+        <th>I should flip a variable</th>
+        <th>My opponent just flipped a variable</th>
+      </tr>
+      <tr>
+        <td>Black</td>
+        <td>0</td>
+        <td>0</td>
+        <td>No</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td>White</td>
+        <td>1</td>
+        <td>0</td>
+        <td>No</td>
+        <td>No</td>
+      </tr>
+      <tr>
+        <td>Black</td>
+        <td>1</td>
+        <td>1</td>
+        <td>Yes</td>
+        <td>No</td>
+      </tr>
+      <tr>
+        <td>White</td>
+        <td>0</td>
+        <td>1</td>
+        <td>Yes</td>
+        <td>Yes</td>
+      </tr>
+    </table>
 
-    <p>Deviations by black are also punished. If black plays any move which
-    isn't either a black 6 ko variable or a 3 ko latch (i.e. black tries to play
-    on one of white's variables during his turn), black activates BLACK_SLOW,
-    which allows white to run out <code>F<sub>2</sub></code> and win. If black
-    tries to set a variable out of order of the clocks, black is always
-    punished. If black ever sets a variable out of order within a segment
-    between two clock set moves, black is also punished. Finally, if black tries
-    to pass his turn earl, black is punished.</p>
+    <p>The following paragraphs will describe the game from black's perspective.
+    Note that since BLACK_FORCING and WHITE_FORCING are complementary, this
+    logic is entirely symmetrical for white.</p>
 
-    <p>First we examine the period between black setting CLOCK<sub>1</sub> and
-    CLOCK<sub>2</sub>, where black is updating BLACK_Y to match WHITE_Y. Note
-    that black will have some prefix where BLACK_Y = WHITE_Y, and some suffix
-    where black has yet to begin updating those variables. At any point, black
-    should always update the first variable of the suffix. If black tries
-    skipping a variable update and updates some other variable in the suffix,
-    black violates BLACK_BAD_TRANSITIONING and white can challenge. If black
-    tries updating some already-set variable in the prefix, black is not
-    immediately punished; however, after that variable flip the suffix of
-    mismatched variables begins at that newly set variable. Black is not allowed
-    to immediately flip that variable back by the ko rule, black also can't
-    update any other variable in the suffix by the previously described logic,
-    so black is forced to update some earlier value in the prefix. This process
-    continues until black is forced to reset CLOCK<sub>1</sub>. After this
-    reset, every move becomes an illegal transition by the formula, except for
-    CLOCK<sub>1</sub>, which is illegal by ko. Finally, if black tries to flip
-    the latch, white can punish through BLACK_FAIL. Therefore, black has no
-    winning move.</p>
+    <p>First, note that neither player is allowed to cheat outside of the
+    gadgets. If black initiates a 6 ko variable and white doesn't respond within
+    the gadget, then black can challenge based on BLACK_TRANS_BLACK. Similarly,
+    when white continues the 6 ko transition, black can't ignore white's
+    responses. Also, on black's turn, black must either initiate a 6 ko variable
+    or initiate the latch, as if black plays anywhere else (i.e. black tries to
+    play on white's variables during his turn), white can punish based on
+    BLACK_SLOW.</p>
 
-    <p>Next we examine the period after black sets CLOCK<sub>2</sub>. Black has
-    some prefix of variables which he has updated, and some suffix which he
-    hasn't yet updated where BLACK_X = WHITE_X. If black tries to update a value
-    in the prefix, it's detected and white can punish with
-    BLACK_BAD_TRANSITIONING. If black turns back and tries to update
-    CLOCK<sub>2</sub> after changing some value, that's also detected and
-    punished.</p>
+    <blockquote>NOTE: I think there might be some weird stuff if black plays a
+      nonstandard move within a 6 ko gadget. For example, if black starts by
+      flipping ko B in a true 6 ko variable, then I'm not entirely sure what
+      white's punishment against that is. This seems simple enough to fix
+      though. For now, let's just assume that these gadget operations are atomic
+      and move on.</blockquote>
 
-    <p>If black tries to flip the 3 ko latch at the immediate start of his turn,
-    black is unable to make the final move due to superko. If black tries to
-    flip the latch in the interregnum between setting CLOCK<sub>1</sub> and
-    CLOCK<sub>2</sub>, white can detect that and punish with BLACK_FAIL.</p>
+    <p>This means that the player who isn't currently making a G<sub>3</sub>
+    move is punished very quickly for any deviations. Every move by the current
+    player yields an immediately urgent response, so the other player's only
+    hopes are to either catch the current player on a bad transition or to wait
+    for the current player to start the latch and pass the turn.</p>
+
+    <p>Catching cheating by the current player is harder. We'll take white to be
+    the current player making a move on G<sub>3</sub> and demonstrate how black
+    can punish any deviation from the proper sequence.</p>
+
+    <p>On the first move, white must flip CLOCK_Y<sub>1</sub>. If white tries to
+    flip any other variable, black can catch her with WHITE_BAD_TRANSITIONING.
+    If black tries immediately flipping the latch, the final move will be
+    illegal by superko.</p>
+
+    <p>On the next move, white may choose to flip one variable from WHITE_Y.
+    White may not flip a second variable, as that would violate
+    WHITE_BAD_TRANSITIONING. After white does so, white may not flip
+    CLOCK_Y<sub>1</sub> as now <span>WHITE_Y &ne; BLACK_Y</span>. White may not
+    flip WHITE_X as she hasn't yet flipped CLOCK_Y<sub>2</sub>. White may not
+    immediately flip the latch as after the latch has finished black can
+    challenge on WHITE_FAIL.</p>
+
+    <p>After that, white's only move is to flip CLOCK_Y<sub>2</sub>. If white
+    has flipped a variable in Y when she wasn't supposed to, black can challenge
+    her based on the CLOCK values.</p>
+
+    <p>Finally, white's should update WHITE_X before passing the turn by
+    flipping the latch. If white tries to update CLOCK_Y<sub>1</sub> or WHITE_Y,
+    black can challenge her based on CLOCK_Y<sub>2</sub>. If, after updating
+    WHITE_X, white comes back to update CLOCK_Y<sub>2</sub>, black can challenge
+    her due to the fact that white's previous move must have either introduced
+    or removed a difference between WHITE_X and BLACK_X, which would make the
+    observed values different from the expected values as from the CLOCK
+    values.</p>
   </body>
 </html>
 
