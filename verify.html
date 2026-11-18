@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Go EXPSPACE verifier</title>
+    <script src=verify.js></script>
+  </head>
+  <body>
+    <h1>Go EXPSPACE verifier</h1>
+
+    <p>This webpage simulates the asymmetric ko game and tries to verify that
+    the gadgets described in <a href=index.html>this document</a> correctly
+    encode G3. Note that this page makes heavy use of unchecked Javascript
+    <code>eval</code>s, beware of XSS.</p>
+
+    <p>Initial G3 setup. The first line contains the initial value of X, the
+    second line contains the initial value of Y, the third line contains
+    F<sub>1</sub> (the formula that X must follow after each move), the fourth
+    line contains F<sub>2</sub> (the formula that Y must follow after each
+    move). Everything after that is ignored.</p>
+
+    <textarea id=description cols=120 rows=7>
+000
+000
+OR(OR(X(0),NOT(Y(0))),OR(OR(X(1),NOT(Y(1))),OR(X(2),NOT(Y(2))))) /* X is a superset of Y */
+OR(OR(Y(0),NOT(X(0))),OR(OR(Y(1),NOT(X(1))),OR(Y(2),NOT(X(2))))) /* Y is a superset of X */
+
+Both players must have a superset of the variables held by the other player. X
+will set a variable to 1, Y will follow and set the same variable to 1. This
+will continue until every X variable is 1, at which point X will be forced to
+violate the rule of the game.
+    </textarea>
+
+    <p>Black's strategy in the asymmetric ko game</p>
+
+    <textarea id=blackStrategy cols=120 rows=7>
+/* a strategy is a function which takes in the current values of the variables
+ * and returns a list of candidate flips to explore next. illegal moves are
+ * automatically filtered by the searcher. if there are no legal suggested
+ * moves, you lose. by writing this brute-force strategy we can explore the full
+ * game tree
+ */
+function({koValues, history}) {
+  ret = [];
+  for (var i = 0; i &lt; koValues.length; ++i) {
+    ret.push(i);
+  }
+  return ret;
+}
+    </textarea>
+
+    <p>White's strategy in the asymmetric ko game</p>
+
+    <textarea id=whiteStrategy cols=120 rows=7>
+function ({koValues, history})  {
+  ret = [];
+  for (var i = 0; i &lt; koValues.length; ++i) {
+    ret.push(i);
+  }
+  return ret;
+}
+    </textarea>
+
+    <br>
+
+    <button id=run>Run</button>
+
+    <br>
+    <pre id=log></pre>
+  </body>
+</html>

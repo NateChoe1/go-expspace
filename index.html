@@ -233,13 +233,14 @@ start of her turn, <code>(NOT F<sub>1</sub>) OR (NOT F<sub>2</sub>)</code>.</p>
     <h2>Encoding G<sub>3</sub></h2>
 
     <p>Each player has <code>2n+2</code> 6 ko variables: One copy of your own
-    variables, one of your opponent's, and two clock variables. From here,
-    black's variables in the ko game will be referred to with the BLACK_ prefix,
-    and white's will be referred to with the WHITE_ prefix. Black's
-    G<sub>3</sub> variables will be referred to as X, white's will be
-    referred to as Y, and the clock variables will be referred to as
-    <span>CLOCK_{X|Y}<sub>1..2</sub></span>, where X and Y correspond to black and white
-    respectively. A single move in G<sub>3</sub> will be played as follows:</p>
+    variables, one of your opponent's, and two clock variables, both initialized
+    to true. From here, black's variables in the ko game will be referred to
+    with the BLACK_ prefix, and white's will be referred to with the WHITE_
+    prefix. Black's G<sub>3</sub> variables will be referred to as X, white's
+    will be referred to as Y, and the clock variables will be referred to as
+    <span>CLOCK_{X|Y}<sub>1..2</sub></span>, where X and Y correspond to black
+    and white respectively. A single move in G<sub>3</sub> will be played as
+    follows:</p>
 
     <ol>
       <li>Black updates BLACK_CLOCK<sub>1</sub></li>
@@ -271,6 +272,8 @@ WHITE_SLOW = WHITE_SENTE AND [black has (ABC | DEF) for every white variable]
 
 T(VAR) = [white is transitioning her variable VAR, i.e. black has kos CD on VAR]
 
+# formulas are evaluated with either ABC for a variable which is false, or DEF
+# for a variable which is true
 WHITE_FAIL = BLACK_SENTE &amp;
              CLOCK_X<sub>1</sub> = CLOCK_Y<sub>1</sub> &amp;
              (BLACK_X &ne; WHITE_X |
@@ -281,14 +284,17 @@ WHITE_FAIL = BLACK_SENTE &amp;
 
 WHITE_BAD_TRANSITIONING =
   (T(CLOCK_Y<sub>1</sub>) &amp; (WHITE_Y &ne; BLACK_Y)) |
+  (T(CLOCK_Y<sub>1</sub>) &amp; (CLOCK_Y<sub>2</sub> &ne; CLOCK_X<sub>1</sub>)) |
   (for some i, T(WHITE_Y<sub>i</sub>) &amp; CLOCK_Y<sub>1</sub> &ne; CLOCK_X<sub>1</sub>) |
   (for some i, T(WHITE_Y<sub>i</sub>) &amp; CLOCK_Y<sub>2</sub> = CLOCK_X<sub>1</sub>) |
   (for some i, T(WHITE_Y<sub>i</sub>) &amp; (for some j&ne;i, WHITE_Y<sub>j</sub> &ne; BLACK_Y<sub>j</sub>)) |
   (T(CLOCK_Y<sub>2</sub>) &amp; CLOCK_Y<sub>1</sub> &ne; CLOCK_X<sub>1</sub>) |
   (T(CLOCK_Y<sub>2</sub>) &amp; CLOCK_X<sub>1</sub> &amp; WHITE_Y &ne; BLACK_Y) |
   (T(CLOCK_Y<sub>2</sub>) &amp; NOT CLOCK_X<sub>1</sub> &amp; WHITE_Y = BLACK_Y) |
+  (T(CLOCK_Y<sub>2</sub>) &amp; CLOCK_X<sub>1</sub> &amp; WHITE_X &ne; BLACK_X) |
+  (T(CLOCK_Y<sub>2</sub>) &amp; NOT CLOCK_X<sub>1</sub> &amp; WHITE_X = BLACK_X) |
   (for some i, T(WHITE_X<sub>i</sub>) &amp; CLOCK_Y<sub>1</sub> &ne; CLOCK_X<sub>1</sub>) |
-  (for some i, T(WHITE_X<sub>i</sub>) &amp; CLOCK_Y<sub>2</sub> &ne; CLOCK_X<sub>2</sub>) |
+  (for some i, T(WHITE_X<sub>i</sub>) &amp; CLOCK_Y<sub>2</sub> &ne; CLOCK_X<sub>1</sub>) |
   (for some i, T(WHITE_X<sub>i</sub>) &amp; (for some j&ne;i, WHITE_X<sub>j</sub> &ne; BLACK_X<sub>j</sub>))
 
 # terms which allow white to win if black deviates. this is essentially the
@@ -296,14 +302,14 @@ WHITE_BAD_TRANSITIONING =
 #
 # these terms relate to white's win conditions, but are written from black's
 # perspective, which converts AND gates to OR gates and vice versa.
-WHITE_FORCING = WHITE_TRANSITIONING &amp; WHITE_LATCHING &amp; BLACk_SLOW &amp; BLACk_FAIL &amp; BLACK_BAD_TRANSITIONING
+WHITE_FORCING = WHITE_TRANSITIONING &amp; WHITE_LATCHING &amp; BLACK_SLOW &amp; BLACK_FAIL &amp; BLACK_BAD_TRANSITIONING
 
 # terms which save black if white doesn't continue with the gadgets
-WHITE_TRANSITIONING = WHITE_TRANS_BLACK &amp; WHITE_TRANS_WHITE
-WHITE_TRANS_BLACK = [black has (A|D|E|F) AND (A|B|E|F) AND (A|B|C|F) for some white 6 ko variable]
-WHITE_TRANS_WHITE = [black has (D|B|C) AND (D|E|C) for white black 6 ko variable]
+WHITE_TRANSITIONING = WHITE_TRANS_WHITE &amp; WHITE_TRANS_BLACK
+WHITE_TRANS_WHITE = [black has (A|D|E|F) AND (A|B|E|F) AND (A|B|C|F) for some white 6 ko variable]
+WHITE_TRANS_BLACK = [black has (D|B|C) AND (D|E|C) for white black 6 ko variable]
 WHITE_LATCHING = [black has (A|C) and (B|C) on the latch]
-BLACK_SLOW = [black has A|B on the latch] AND [black has (A|B|C) AND (D|E|F) for every black variable]
+BLACK_SLOW = [black has A|B on the latch] OR [black has (A|B|C) AND (D|E|F) for some black variable]
 
 # terms which save white if black makes a mistake during her turn
 
@@ -319,15 +325,18 @@ BLACK_FAIL = BLACK_SENTE |
 
 BLACK_BAD_TRANSITIONING =
   (T'(CLOCK_X<sub>1</sub>) | (WHITE_X = BLACK_X)) &amp;
+  (T'(CLOCK_X<sub>1</sub>) | (CLOCK_X<sub>2</sub> = CLOCK_Y<sub>1</sub>)) &amp;
   (for all i, T'(BLACK_X<sub>i</sub>) | CLOCK_X<sub>1</sub> &ne; CLOCK_Y<sub>1</sub>) &amp;
   (for all i, T'(BLACK_X<sub>i</sub>) | CLOCK_X<sub>2</sub> = CLOCK_Y<sub>1</sub>) &amp;
   (for all i, T'(BLACK_X<sub>i</sub>) | (for all j&ne;i, BLACK_X<sub>j</sub> = WHITE_X<sub>j</sub>)) &amp;
   (T'(CLOCK_X<sub>2</sub>) | CLOCK_X<sub>1</sub> &ne; CLOCK_Y<sub>1</sub>) &amp;
-  (T'(CLOCK_X<sub>2</sub>) | NOT CLOCK_Y<sub>1</sub> &amp; WHITE_Y &ne; BLACK_Y) &amp;
-  (T'(CLOCK_X<sub>2</sub>) | CLOCK_Y<sub>1</sub> &amp; WHITE_Y = BLACK_Y) &amp;
-  (for all i, T(BLACK_Y<sub>i</sub>) | CLOCK_X<sub>1</sub> &ne; CLOCK_Y<sub>1</sub>) &amp;
-  (for all i, T(BLACK_Y<sub>i</sub>) | CLOCK_X<sub>2</sub> &ne; CLOCK_Y<sub>2</sub>) &amp;
-  (for all i, T(BLACK_Y<sub>i</sub>) | (for all j&ne;i, BLACK_Y<sub>j</sub> = WHITE_Y<sub>j</sub>))
+  (T'(CLOCK_X<sub>2</sub>) | NOT CLOCK_Y<sub>1</sub> | WHITE_Y = BLACK_Y) &amp;
+  (T'(CLOCK_X<sub>2</sub>) | CLOCK_Y<sub>1</sub> | WHITE_Y &ne; BLACK_Y) &amp;
+  (T'(CLOCK_X<sub>2</sub>) | NOT CLOCK_Y<sub>1</sub> | WHITE_X &ne; BLACK_X) &amp;
+  (T'(CLOCK_X<sub>2</sub>) | CLOCK_Y<sub>1</sub> | WHITE_X = BLACK_X) &amp;
+  (for all i, T'(BLACK_Y<sub>i</sub>) | CLOCK_X<sub>1</sub> &ne; CLOCK_Y<sub>1</sub>) &amp;
+  (for all i, T'(BLACK_Y<sub>i</sub>) | CLOCK_X<sub>2</sub> &ne; CLOCK_Y<sub>1</sub>) &amp;
+  (for all i, T'(BLACK_Y<sub>i</sub>) | (for all j&ne;i, BLACK_Y<sub>j</sub> = WHITE_Y<sub>j</sub>))
 
 F<sub>1</sub> = BLACK_FORCING
 F<sub>2</sub> = WHITE_FORCING
@@ -438,6 +447,10 @@ F<sub>2</sub> = WHITE_FORCING
     or removed a difference between WHITE_X and BLACK_X, which would make the
     observed values different from the expected values as from the CLOCK
     values.</p>
+
+    <h2>Computational gadget verification</h2>
+
+    <p></p>
   </body>
 </html>
 
